@@ -297,8 +297,10 @@ class FollowTest(TestCase):
         """Нельзя подписаться повторно."""
         counter = Follow.objects.filter(
             author=self.author, user=self.user).count()
-        self.follower.get(
-            reverse('posts:profile_follow', args=[self.author]))
+        Follow.objects.create(
+            author=self.author,
+            user=self.user,
+        )
         self.follower.get(
             reverse('posts:profile_follow', args=[self.author]))
         self.assertEqual(Follow.objects.count(), counter + 1)
