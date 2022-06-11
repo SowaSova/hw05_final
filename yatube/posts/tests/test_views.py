@@ -293,10 +293,11 @@ class FollowTest(TestCase):
     def test_double_following(self):
         """Нельзя подписаться повторно."""
         self.follower.get(
-            reverse('posts:profile_follow', args=[self.user]))
-        response = self.follower.get(
-            reverse('posts:profile', args=[self.author]))
-        self.assertEqual(response.context['following'], False)
+            reverse('posts:profile_follow', args=[self.author]))
+        # Вторая попытка
+        self.follower.get(
+            reverse('posts:profile_follow', args=[self.author]))
+        self.assertEqual(Follow.objects.count(), self.counter + 1)
 
     def test_self_follow(self):
         self.follower.get(
