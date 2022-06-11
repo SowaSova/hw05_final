@@ -227,6 +227,11 @@ class PostPagesTest(TestCase):
         self.assertEqual(
             response.context['following'], True)
 
+    def test_subscription_to_yourself(self):
+        response = self.non_author_follower.get(
+            reverse('posts:profile', args=[self.non_author]))
+        self.assertEqual(response.context['following'], False)
+
     def test_follow_index_context(self):
         """Появление нового поста для подписчиков."""
         response = self.non_author_follower.get(
