@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Главная страница
+{% endblock title %}
+
+{% block content %}
+{% load thumbnail %}
+{% load cache %}
+<h1>Последние обновления на сайте</h1>
+{% include 'posts/includes/switcher.html' %}
+{% for post in page_obj %}
+
+{% include 'posts/includes/post_list.html' %}
+
+{% if post.group %}
+все записи группы:
+<a href="{% url 'posts:group_list' post.group.slug %}" target = "_blank">Записи группы {{ post.group }}</a>
+</p>
+{% endif %}
+{% if not forloop.last %}
+<hr>
+{% endif %}
+{% endfor %}
+{% include 'posts/includes/paginator.html' %}
+
+{% endblock content %}
