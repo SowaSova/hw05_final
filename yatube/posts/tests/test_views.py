@@ -1,8 +1,13 @@
+import shutil
+import tempfile
 
 from django import forms
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.paginator import Paginator
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+
 from yatube.settings import POSTS_ON_PAGE
 
 from ..models import Comment, Follow, Group, Post, User
@@ -16,12 +21,15 @@ POST_ID = '1'
 POST_PAGE = reverse('posts:post_detail', args=[POST_ID])
 POST_CREATE_PAGE = reverse('posts:post_create')
 POST_EDIT_PAGE = reverse('posts:post_edit', args=[POST_ID])
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostPagesTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.follower_count = Follow.objects.count()
         cls.author = User.objects.create_user(username='TestUser')
         cls.non_author = User.objects.create_user(username='non_author')
         cls.group = Group.objects.create(
@@ -38,10 +46,25 @@ class PostPagesTest(TestCase):
             author=cls.author,
             user=cls.non_author
         )
+        image = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        cls.uploaded = SimpleUploadedFile(
+            name='small.png',
+            content=image,
+            content_type='image/png'
+        )
+
         post_obj = [Post(
             text='Тестовый текст',
             group=cls.group,
             author=cls.author,
+            image=cls.uploaded,
             pk='%s' % i
         ) for i in range(12)]
         cls.posts = Post.objects.bulk_create(post_obj)
@@ -50,6 +73,7 @@ class PostPagesTest(TestCase):
             author=cls.author,
             text='Тестовый текст',
             group=cls.group,
+            image=cls.uploaded,
         )
         cls.comment = Comment.objects.create(
             author=cls.author,
@@ -57,6 +81,11 @@ class PostPagesTest(TestCase):
             post=cls.post,
         )
         cls.paginator = Paginator(Post.objects.all(), POSTS_ON_PAGE)
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
         self.guest_client = Client()
@@ -95,6 +124,7 @@ class PostPagesTest(TestCase):
         form_field = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_field.items():
             with self.subTest(value=value):
@@ -108,6 +138,7 @@ class PostPagesTest(TestCase):
         form_field = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_field.items():
             with self.subTest(value=value):
@@ -125,6 +156,7 @@ class PostPagesTest(TestCase):
             self.post.text: self.first_object(response).text,
             self.post.author: self.first_object(response).author,
             self.post.group: self.first_object(response).group,
+            self.post.image: self.first_object(response).image,
         }
         for obj, context in page_obj.items():
             with self.subTest(context=context):
@@ -138,6 +170,7 @@ class PostPagesTest(TestCase):
             self.post.text: self.first_object(response).text,
             self.post.author: self.first_object(response).author,
             self.post.group: group,
+            self.post.image: self.first_object(response).image,
         }
         for obj, context in page_obj.items():
             with self.subTest(context=context):
@@ -158,6 +191,7 @@ class PostPagesTest(TestCase):
             self.post.text: self.first_object(response).text,
             self.post.group: self.first_object(response).group,
             self.post.author: author,
+            self.post.image: self.first_object(response).image,
             Post.objects.filter(author=self.author).count(): context_counter,
         }
         for obj, context in page_obj.items():
@@ -176,6 +210,7 @@ class PostPagesTest(TestCase):
         page_obj = {
             self.post.text: post_obj.text,
             self.post.author: author,
+            self.post.image: post_obj.image,
             self.comment: comments,
             Post.objects.filter(author=self.author).count(): context_counter,
         }
@@ -223,13 +258,14 @@ class PostPagesTest(TestCase):
 
     def test_subscription_available_authorize(self):
         """Доступность возможности подписаться и отписаться."""
-        response = self.non_author_follower.get(AUTHOR_POSTS)
-        self.assertEqual(
-            response.context['following'], True)
+        self.assertEqual(Follow.objects.count(), self.follower_count + 1)
+        self.non_author_follower.get(
+            reverse('posts:profile_unfollow', args=[self.non_author]))
+        self.assertEqual(Follow.objects.count(), self.follower_count)
 
-    def test_follow_auth(self):
-        """Нельзя подписаться на себя."""
-        response = self.non_author_follower.get(
+    def test_subscription_non_available_guest(self):
+        """Доступность подписки для неавторизованных."""
+        response = self.guest_client.get(
             reverse('posts:profile', args=[self.non_author]))
         self.assertEqual(response.context['following'], False)
 
