@@ -24,7 +24,7 @@ class PostCreateFormTest(TestCase):
             slug='test_slug',
             description='Описание',
         )
-        image = (
+        cls.image = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
@@ -33,8 +33,8 @@ class PostCreateFormTest(TestCase):
             b'\x0A\x00\x3B'
         )
         cls.uploaded = SimpleUploadedFile(
-            name='small.png',
-            content=image,
+            name='smallFORM.png',
+            content=cls.image,
             content_type='image/png'
         )
         cls.post = Post.objects.create(
@@ -60,7 +60,7 @@ class PostCreateFormTest(TestCase):
         form_data = {
             'text': self.post.text,
             'group': self.group.pk,
-            'image': self.post.image,
+            'image': self.image,
         }
         response = self.authorized_user.post(
             reverse('posts:post_create'),

@@ -29,7 +29,6 @@ class PostPagesTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.follower_count = Follow.objects.count()
         cls.author = User.objects.create_user(username='TestUser')
         cls.non_author = User.objects.create_user(username='non_author')
         cls.group = Group.objects.create(
@@ -46,7 +45,7 @@ class PostPagesTest(TestCase):
             author=cls.author,
             user=cls.non_author
         )
-        image = (
+        cls.image = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
@@ -55,8 +54,8 @@ class PostPagesTest(TestCase):
             b'\x0A\x00\x3B'
         )
         cls.uploaded = SimpleUploadedFile(
-            name='small.png',
-            content=image,
+            name='smallVIEWS.png',
+            content=cls.image,
             content_type='image/png'
         )
 
@@ -89,10 +88,10 @@ class PostPagesTest(TestCase):
 
     def setUp(self):
         self.guest_client = Client()
-        self.author_following = Client()
-        self.author_following.force_login(self.author)
-        self.non_author_follower = Client()
-        self.non_author_follower.force_login(self.non_author)
+        self.author_client = Client()
+        self.author_client.force_login(self.author)
+        self.non_author_client = Client()
+        self.non_author_client.force_login(self.non_author)
 
     def test_pages_uses_correct_template_authorized(self):
         """Использование автором posts view ожидаемых шаблонов."""
@@ -105,7 +104,7 @@ class PostPagesTest(TestCase):
         }
         for template, reverse_name in template_pages.items():
             with self.subTest(reverse_name=reverse_name):
-                response = self.author_following.get(reverse_name)
+                response = self.author_client.get(reverse_name)
                 self.assertTemplateUsed(response, template)
 
     def test_post_edit_correct_template_non_author(self):
@@ -115,12 +114,12 @@ class PostPagesTest(TestCase):
                           }
         for template, reverse_name in template_pages.items():
             with self.subTest(reverse_name=reverse_name):
-                response = self.non_author_follower.get(reverse_name)
+                response = self.non_author_client.get(reverse_name)
                 self.assertTemplateNotUsed(response, template)
 
     def test_create_show_correct_context(self):
         """Проверка форм страницы создания поста."""
-        response = self.author_following.get(POST_CREATE_PAGE)
+        response = self.author_client.get(POST_CREATE_PAGE)
         form_field = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
@@ -133,7 +132,7 @@ class PostPagesTest(TestCase):
 
     def test_edit_show_correct_context(self):
         """Проверка форм страницы редактирования поста."""
-        response = self.author_following.get(
+        response = self.author_client.get(
             POST_EDIT_PAGE)
         form_field = {
             'text': forms.fields.CharField,
@@ -164,7 +163,7 @@ class PostPagesTest(TestCase):
 
     def test_group_list_show_correct_context(self):
         """Проверка контекста страницы постов групп."""
-        response = self.guest_client.get(GROUP_POSTS)
+        response = self.author_client.get(GROUP_POSTS)
         group = response.context['group']
         page_obj = {
             self.post.text: self.first_object(response).text,
@@ -184,7 +183,7 @@ class PostPagesTest(TestCase):
 
     def test_profile_list_show_correct_context(self):
         """Проверка контекста страницы постов автора."""
-        response = self.author_following.get(AUTHOR_POSTS)
+        response = self.author_client.get(AUTHOR_POSTS)
         author = response.context['author']
         context_counter = response.context['count']
         page_obj = {
@@ -247,7 +246,7 @@ class PostPagesTest(TestCase):
 
     def test_comment_only_authorized(self):
         """Проверка создания комментария."""
-        response = self.author_following.get(POST_PAGE)
+        response = self.author_client.get(POST_PAGE)
         form_field = {
             'text': forms.fields.CharField,
         }
@@ -256,23 +255,49 @@ class PostPagesTest(TestCase):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
-    def test_subscription_available_authorize(self):
-        """Доступность возможности подписаться и отписаться."""
-        self.assertEqual(Follow.objects.count(), self.follower_count + 1)
-        self.non_author_follower.get(
-            reverse('posts:profile_unfollow', args=[self.non_author]))
-        self.assertEqual(Follow.objects.count(), self.follower_count)
+    def test_index_cache(self):
+        """Кэширование главной страницы."""
+        post_count = Post.objects.count()
+        self.author_client.delete(POST_PAGE)
+        self.assertEqual(Post.objects.count(), post_count)
 
-    def test_subscription_non_available_guest(self):
-        """Доступность подписки для неавторизованных."""
-        response = self.guest_client.get(
-            reverse('posts:profile', args=[self.non_author]))
-        self.assertEqual(response.context['following'], False)
 
-    def test_follow_index_context(self):
-        """Появление нового поста для подписчиков."""
-        response = self.non_author_follower.get(
-            reverse('posts:follow_index')
+class FollowTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.author = User.objects.create_user(username='author')
+        cls.user = User.objects.create_user(username='non_author')
+        cls.post = Post.objects.create(
+            text='Тестовый текст',
+            author=cls.author,
         )
-        self.assertEqual(self.first_object(response).author,
-                         self.author)
+        cls.counter = Follow.objects.count()
+        cls.following = Client()
+        cls.following.force_login(cls.author)
+        cls.follower = Client()
+        cls.follower.force_login(cls.user)
+
+    def test_subscription_available_authorize(self):
+        """Доступность возможности подписаться."""
+        self.follower.get(
+            reverse('posts:profile_follow', args=[self.author]))
+        self.assertEqual(Follow.objects.count(), self.counter + 1)
+
+    def test_unsub_available(self):
+        """Доступность отписки."""
+        self.follower.get(
+            reverse('posts:profile_unfollow', args=[self.author]))
+        self.assertEqual(Follow.objects.count(), self.counter)
+
+    def test_self_follow(self):
+        self.follower.get(
+            reverse('posts:profile_follow', args=[self.user])
+        )
+        self.assertEqual(Follow.objects.count(), self.counter)
+
+    def test_post_follow_page(self):
+        """ПОст на странице подписчика."""
+        Follow.objects.create(user=self.user, author=self.author)
+        response = self.follower.get(reverse('posts:follow_index'))
+        self.assertIn(self.post, response.context['page_obj'])
