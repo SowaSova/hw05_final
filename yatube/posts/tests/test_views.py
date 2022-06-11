@@ -3,7 +3,6 @@ from django import forms
 from django.core.paginator import Paginator
 from django.test import Client, TestCase
 from django.urls import reverse
-
 from yatube.settings import POSTS_ON_PAGE
 
 from ..models import Comment, Follow, Group, Post, User
