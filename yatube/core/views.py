@@ -8,12 +8,16 @@ def page_not_found(request, exception):
     page_context = {
         'path': request.path,
     }
-    return render(request, template_name, page_context, status=HTTPStatus.NOT_FOUND)
+    return render(
+        request, template_name, page_context, status=HTTPStatus.NOT_FOUND
+    )
 
 
 def server_error(request):
     template_name = 'core/500.html'
-    return render(request, template_name, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+    return render(
+        request, template_name, status=HTTPStatus.INTERNAL_SERVER_ERROR
+    )
 
 
 def permission_denied(request, exception):
