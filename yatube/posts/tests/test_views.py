@@ -290,8 +290,6 @@ class FollowTest(TestCase):
         counter = Follow.objects.filter(
             author=self.author, user=self.user).count()
         self.follower.get(
-            reverse('posts:profile_follow', args=[self.author]))
-        self.follower.get(
             reverse('posts:profile_unfollow', args=[self.author]))
         self.assertEqual(Follow.objects.count(), counter)
 
@@ -306,6 +304,7 @@ class FollowTest(TestCase):
         self.assertEqual(Follow.objects.count(), counter + 1)
 
     def test_self_follow(self):
+        """Подписка на себя."""
         counter = Follow.objects.filter(
             author=self.author, user=self.user).count()
         self.follower.get(
@@ -313,7 +312,7 @@ class FollowTest(TestCase):
         self.assertEqual(Follow.objects.count(), counter)
 
     def test_post_follow_page(self):
-        """ПОст на странице подписчика."""
+        """Пост на странице подписчика."""
         Follow.objects.create(user=self.user, author=self.author)
         response = self.follower.get(reverse('posts:follow_index'))
         self.assertIn(self.post, response.context['page_obj'])
