@@ -295,7 +295,7 @@ class FollowTest(TestCase):
         self.follower.get(
             reverse('posts:profile_follow', args=[self.author]))
         response = self.follower.get(
-            reverse('posts:profile', args=[self.author]))
+            reverse('posts:profile', args=[self.user]))
         self.assertEqual(response.context['following'], False)
 
     def test_self_follow(self):
