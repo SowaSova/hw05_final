@@ -272,7 +272,6 @@ class FollowTest(TestCase):
             text='Тестовый текст',
             author=cls.author,
         )
-        cls.counter = Follow.objects.count()
         cls.following = Client()
         cls.following.force_login(cls.author)
         cls.follower = Client()
@@ -280,30 +279,38 @@ class FollowTest(TestCase):
 
     def test_subscription_available_authorize(self):
         """Доступность возможности подписаться."""
+        counter = Follow.objects.filter(
+            author=self.author, user=self.user).count()
         self.follower.get(
             reverse('posts:profile_follow', args=[self.author]))
-        self.assertEqual(Follow.objects.count(), self.counter + 1)
+        self.assertEqual(Follow.objects.count(), counter + 1)
 
     def test_unsub_available(self):
         """Доступность отписки."""
+        counter = Follow.objects.filter(
+            author=self.author, user=self.user).count()
+        self.follower.get(
+            reverse('posts:profile_follow', args=[self.author]))
         self.follower.get(
             reverse('posts:profile_unfollow', args=[self.author]))
-        self.assertEqual(Follow.objects.count(), self.counter)
+        self.assertEqual(Follow.objects.count(), counter)
 
     def test_double_following(self):
         """Нельзя подписаться повторно."""
+        counter = Follow.objects.filter(
+            author=self.author, user=self.user).count()
         self.follower.get(
             reverse('posts:profile_follow', args=[self.author]))
-        # Вторая попытка
         self.follower.get(
             reverse('posts:profile_follow', args=[self.author]))
-        self.assertEqual(Follow.objects.count(), self.counter + 1)
+        self.assertEqual(Follow.objects.count(), counter + 1)
 
     def test_self_follow(self):
+        counter = Follow.objects.filter(
+            author=self.author, user=self.user).count()
         self.follower.get(
-            reverse('posts:profile_follow', args=[self.user])
-        )
-        self.assertEqual(Follow.objects.count(), self.counter)
+            reverse('posts:profile_follow', args=[self.user]))
+        self.assertEqual(Follow.objects.count(), counter)
 
     def test_post_follow_page(self):
         """ПОст на странице подписчика."""
