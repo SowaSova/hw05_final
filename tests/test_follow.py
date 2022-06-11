@@ -88,14 +88,16 @@ class TestFollow:
                 'Проверьте, что не авторизованного пользователя `/follow/` отправляет на страницу авторизации'
             )
 
-        response = self.check_url(client, f'/profile/{user.username}/follow', '/profile/<username>/follow/')
+        response = self.check_url(
+            client, f'/profile/{user.username}/follow', '/profile/<username>/follow/')
         if not(response.status_code in (301, 302) and response.url.startswith('/auth/login')):
             assert False, (
                 'Проверьте, что не авторизованного пользователя `profile/<username>/follow/` '
                 'отправляете на страницу авторизации'
             )
 
-        response = self.check_url(client, f'/profile/{user.username}/unfollow', '/profile/<username>/unfollow/')
+        response = self.check_url(
+            client, f'/profile/{user.username}/unfollow', '/profile/<username>/unfollow/')
         if not(response.status_code in (301, 302) and response.url.startswith('/auth/login')):
             assert False, (
                 'Проверьте, что не авторизованного пользователя `profile/<username>/unfollow/` '
@@ -109,24 +111,33 @@ class TestFollow:
             '`related_name="follower"'
         )
         assert user.follower.count() == 0, 'Проверьте, что правильно считается подписки'
-        self.check_url(user_client, f'/profile/{post.author.username}/follow', '/profile/<username>/follow/')
+        self.check_url(
+            user_client, f'/profile/{post.author.username}/follow', '/profile/<username>/follow/')
         assert user.follower.count() == 0, 'Проверьте, что нельзя подписаться на самого себя'
 
         user_1 = get_user_model().objects.create_user(username='TestUser_2344')
         user_2 = get_user_model().objects.create_user(username='TestUser_73485')
 
-        self.check_url(user_client, f'/profile/{user_1.username}/follow', '/profile/<username>/follow/')
+        self.check_url(
+            user_client, f'/profile/{user_1.username}/follow', '/profile/<username>/follow/')
         assert user.follower.count() == 1, 'Проверьте, что вы можете подписаться на пользователя'
-        self.check_url(user_client, f'/profile/{user_1.username}/follow', '/profile/<username>/follow/')
-        assert user.follower.count() == 1, 'Проверьте, что вы можете подписаться на пользователя только один раз'
+        self.check_url(
+            user_client, f'/profile/{user_1.username}/follow', '/profile/<username>/follow/')
+        assert user.follower.count(
+        ) == 1, 'Проверьте, что вы можете подписаться на пользователя только один раз'
 
         image = tempfile.NamedTemporaryFile(suffix=".jpg").name
-        Post.objects.create(text='Тестовый пост 4564534', author=user_1, image=image)
-        Post.objects.create(text='Тестовый пост 354745', author=user_1, image=image)
+        Post.objects.create(text='Тестовый пост 4564534',
+                            author=user_1, image=image)
+        Post.objects.create(text='Тестовый пост 354745',
+                            author=user_1, image=image)
 
-        Post.objects.create(text='Тестовый пост 245456', author=user_2, image=image)
-        Post.objects.create(text='Тестовый пост 9789', author=user_2, image=image)
-        Post.objects.create(text='Тестовый пост 4574', author=user_2, image=image)
+        Post.objects.create(text='Тестовый пост 245456',
+                            author=user_2, image=image)
+        Post.objects.create(text='Тестовый пост 9789',
+                            author=user_2, image=image)
+        Post.objects.create(text='Тестовый пост 4574',
+                            author=user_2, image=image)
 
         response = self.check_url(user_client, '/follow', '/follow/')
         assert 'page_obj' in response.context, (
@@ -139,21 +150,24 @@ class TestFollow:
             'Проверьте, что на странице `/follow/` список статей авторов на которых подписаны'
         )
 
-        self.check_url(user_client, f'/profile/{user_2.username}/follow', '/profile/<username>/follow/')
+        self.check_url(
+            user_client, f'/profile/{user_2.username}/follow', '/profile/<username>/follow/')
         assert user.follower.count() == 2, 'Проверьте, что вы можете подписаться на пользователя'
         response = self.check_url(user_client, '/follow', '/follow/')
         assert len(response.context['page_obj']) == 5, (
             'Проверьте, что на странице `/follow/` список статей авторов на которых подписаны'
         )
 
-        self.check_url(user_client, f'/profile/{user_1.username}/unfollow', '/profile/<username>/unfollow/')
+        self.check_url(
+            user_client, f'/profile/{user_1.username}/unfollow', '/profile/<username>/unfollow/')
         assert user.follower.count() == 1, 'Проверьте, что вы можете отписаться от пользователя'
         response = self.check_url(user_client, '/follow', '/follow/')
         assert len(response.context['page_obj']) == 3, (
             'Проверьте, что на странице `/follow/` список статей авторов на которых подписаны'
         )
 
-        self.check_url(user_client, f'/profile/{user_2.username}/unfollow', '/profile/<username>/unfollow/')
+        self.check_url(
+            user_client, f'/profile/{user_2.username}/unfollow', '/profile/<username>/unfollow/')
         assert user.follower.count() == 0, 'Проверьте, что вы можете отписаться от пользователя'
         response = self.check_url(user_client, '/follow', '/follow/')
         assert len(response.context['page_obj']) == 0, (
