@@ -33,8 +33,8 @@ def profile(request, username):
     posts = author.posts.all()
     paginator = pagination(request, posts)
     count = author.posts.count()
-    following = (request.user.is_authenticated and author.following.filter(
-        user=request.user).exists())
+    following = request.user.is_authenticated and author.following.filter(
+        user=request.user).exists()
     context = {
         'page_obj': paginator,
         'author': author,
@@ -60,7 +60,7 @@ def post_detail(request, post_id):
     return render(request, post_detail_template, context)
 
 
-@ login_required
+@login_required
 def post_create(request):
     create_post_template = 'posts/create_post.html'
     group = Group.objects.all()
@@ -98,7 +98,7 @@ def post_edit(request, post_id):
     return render(request, post_edit_template, context)
 
 
-@ login_required
+@login_required
 def add_comment(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
@@ -110,7 +110,7 @@ def add_comment(request, post_id):
     return redirect('posts:post_detail', post_id=post_id)
 
 
-@ login_required
+@login_required
 def follow_index(request):
     template = 'posts/follow.html'
     page_obj = pagination(request, Post.objects.filter(
@@ -121,20 +121,18 @@ def follow_index(request):
     return render(request, template, context)
 
 
-@ login_required
+@login_required
 def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
-    if request.user != author and not (
-            author.following.filter(author=author, user=request.user
-                                    ).exists()):
-        Follow.objects.create(
+    if request.user != author:
+        Follow.objects.get_or_create(
             user=request.user,
             author=author,
         )
     return redirect('posts:profile', username=username)
 
 
-@ login_required
+@login_required
 def profile_unfollow(request, username):
     author = get_object_or_404(User, username=username)
     user = get_object_or_404(Follow, user=request.user, author=author)

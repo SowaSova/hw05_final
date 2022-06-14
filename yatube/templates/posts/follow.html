@@ -1,18 +1,13 @@
 {% extends 'base.html' %}
-
 {% block title %}
 Страница подписок
 {% endblock title %}
-
 {% block content %}
 {% load thumbnail %}
 <h1>Страница подписок</h1>
 {% include 'posts/includes/switcher.html' %}
-
 {% for post in page_obj %}
-
 {% include 'posts/includes/post_list.html' %}
-
 {% if post.group %}
 <p>
   все записи группы:
@@ -24,6 +19,4 @@
 {% endif %}
 {% endfor %}
 {% include 'posts/includes/paginator.html' %}
-
-
 {% endblock content %}
