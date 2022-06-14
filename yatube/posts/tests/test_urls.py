@@ -61,7 +61,7 @@ class StaticURLTests(TestCase):
         """Страницы posts не доступные неавторизованным пользователям."""
         url_list = {
             POST_CREATE_PAGE: '/auth/login/?next=/create/',
-            POST_EDIT_PAGE: POST_PAGE,
+            POST_EDIT_PAGE: f'/auth/login/?next=/posts/{self.post.pk}/edit/',
         }
         for url, url_names in url_list.items():
             with self.subTest(url_names=url_names):
