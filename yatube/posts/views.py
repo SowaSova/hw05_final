@@ -79,6 +79,7 @@ def post_create(request):
     return render(request, create_post_template, context)
 
 
+@login_required
 def post_edit(request, post_id):
     post_edit_template = 'posts/create_post.html'
     post = get_object_or_404(Post, pk=post_id)
