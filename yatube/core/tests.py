@@ -20,25 +20,23 @@ class CoreTestClass(TestCase):
         super().setUpClass()
         cls.post_count = Post.objects.count()
         image = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
+            b"\x47\x49\x46\x38\x39\x61\x02\x00"
+            b"\x01\x00\x80\x00\x00\x00\x00\x00"
+            b"\xFF\xFF\xFF\x21\xF9\x04\x00\x00"
+            b"\x00\x00\x00\x2C\x00\x00\x00\x00"
+            b"\x02\x00\x01\x00\x00\x02\x02\x0C"
+            b"\x0A\x00\x3B"
         )
         cls.uploaded = SimpleUploadedFile(
-            name='image.png',
-            content=image,
-            content_type='image/png'
+            name="image.png", content=image, content_type="image/png"
         )
-        cls.author = User.objects.create(username='TestUser')
+        cls.author = User.objects.create(username="TestUser")
         cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test_slug',
+            title="Тестовая группа",
+            slug="test_slug",
         )
         cls.post = Post.objects.create(
-            text='Тестовый текст',
+            text="Тестовый текст",
             author=cls.author,
             group=cls.group,
             image=cls.uploaded,
@@ -56,17 +54,17 @@ class CoreTestClass(TestCase):
 
     def test_error_page(self):
         """Проверка работы кастомной страницы 404."""
-        response = self.author_client.get('/nonexist-page/')
+        response = self.author_client.get("/nonexist-page/")
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        self.assertTemplateUsed(response, 'core/404.html')
+        self.assertTemplateUsed(response, "core/404.html")
 
     def test_picture_in_post(self):
         """Проверка создания поста с картинкой."""
         url_list = {
-            reverse('posts:index'),
-            reverse('posts:group_list', args=[self.post.group]),
-            reverse('posts:post_detail', args=[self.post.pk]),
-            reverse('posts:profile', args=[self.post.author]),
+            reverse("posts:index"),
+            reverse("posts:group_list", args=[self.post.group]),
+            reverse("posts:post_detail", args=[self.post.pk]),
+            reverse("posts:profile", args=[self.post.author]),
         }
         for urls in url_list:
             with self.subTest(urls=urls):
